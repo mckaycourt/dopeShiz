@@ -2,6 +2,7 @@
     <div>
         <a href="/api/users/logout"><font size="5">Logout</font></a>
         <div class="contact1">
+            <h1>Welcome {{user.name}}</h1>
             <div class="container-contact1">
                 <div class="contact1-pic js-tilt" data-tilt>
                 <img :src="imageLink" alt="IMG">
@@ -24,12 +25,12 @@
                     </div>
 
                     <div class="wrap-input1 validate-input" data-validate="Select a time">
-                        <input class="input1" id="time" type="time" name="Time" placeholder="Time">
+                        <input class="input1" id="time" type="time" name="time" placeholder="Time">
                         <span class="shadow-input1"></span>
                     </div>
 
                     <div class="wrap-input1 validate-input" data-validate="Valid email is required: ex@abc.xyz">
-                        <input class="input1" type="text" name="emailTo" id="emailReceiver"
+                        <input class="input1" type="text" name="emailTo" id="emailTo"
                                placeholder="Email of Recipient">
                         <span class="shadow-input1"></span>
                     </div>
@@ -45,7 +46,7 @@
                     </div>
 
                     <div class="container-contact1-form-btn">
-                        <button class="contact1-form-btn">
+                        <button class="contact1-form-btn" @click="addToCart()">
 						<span>
 							Send Email
 							<i class="fa fa-long-arrow-right" aria-hidden="true"></i>
@@ -55,11 +56,19 @@
                 </form>
             </div>
         </div>
+        <div>
+            <div v-for="(item, key, index) in items">
+                <div>To: {{item.name}}</div>
+                <div>Subject: {{item.subject}}</div>
+                <div>Sent: {{item.sent}}</div>
+                <div @click="removeItem(item, key)">x</div>
+            </div>
+        </div>
     </div>
 </template>
 
 <script>
-    // import axios from 'axios';
+    import axios from 'axios';
 
     export default {
         data: function () {
@@ -71,7 +80,7 @@
                 // friends: [],
                 user: null,
                 imageLink: "/images/img-01.png",
-                items: [],
+                items: []
                 // cart: []
             }
         },
@@ -83,7 +92,7 @@
                         // this.friends = data.friends;
                         this.user = data.user;
                         this.loaded = true;
-                    });
+                    })
             },
             logout: function () {
                 window.location = '/api/users/logout';
@@ -93,7 +102,7 @@
                     .then(response => response.json())
                     .then(data => {
                         this.items = data;
-                    });
+                    })
             },
             // getCart: function () {
             //     fetch('/api/cart/items', {credentials: 'same-origin'})
@@ -102,27 +111,33 @@
             //             this.cart = data;
             //         });
             // },
-            // addToCart: function (item) {
-            //     axios.post('/api/cart/newItem', {itemName: item.itemName, itemInfo: item.itemInfo, quantity: item.quantity})
-            //         .then(function (res) {
-            //             console.log(res);
-            //         })
-            //         .catch(function (err) {
-            //             console.log(err);
-            //         });
-            //     this.cart.push({itemName: item.itemName, itemInfo: item.itemInfo});
-            // },
-            // removeFromCart: function (item, itemId) {
-            //     console.log(itemId);
-            //     this.cart.splice(itemId, 1);
-            //     axios.post('/api/cart/removeItem', {itemName: item.itemName, itemInfo: item.itemInfo})
-            //         .then(function (res) {
-            //             console.log(res);
-            //         })
-            //         .catch(function (err) {
-            //             console.log(err);
-            //         });
-            // }
+            addToCart: function () {
+                const name = $("#name").val();
+                const date = $("#date").val();
+                const  time = $("#time").val();
+                const emailTo = $("#emailTo").val();
+                const subject = $("#subject").val();
+                const message = $("#message").val();
+                axios.post('/api/items/newItem', {name, date, time, emailTo, subject, message})
+                    .then(function (res) {
+                        console.log(res);
+                    })
+                    .catch(function (err) {
+                        console.log(err);
+                    });
+                this.items.push({name, date, time, emailTo, subject, message});
+            },
+            removeItem: function (item, itemId) {
+                console.log(itemId);
+                this.items.splice(itemId, 1);
+                axios.post('/api/items/removeItem', {_id: item._id})
+                    .then(function (res) {
+                        console.log(res);
+                    })
+                    .catch(function (err) {
+                        console.log(err);
+                    });
+            }
         }
     }
 </script>

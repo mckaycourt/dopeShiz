@@ -8,7 +8,6 @@ const router = new Router();
 module.exports = router;
 
 router.post('/login', passport.authenticate('local'), (req, res) => {
-    console.log(req.user);
     res.redirect('/');
 });
 

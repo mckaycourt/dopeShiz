@@ -13,7 +13,8 @@ const path          = require('path');
 const userRouter    = require('./router/users');
 const itemRouter    = require('./router/item');
 const cartRouter    = require('./router/cart');
-const MongoClient = require('mongodb').MongoClient;
+const MongoClient   = require('mongodb').MongoClient;
+const ObjectId = require('mongodb').ObjectID;
 const Users         = require('./controller/Users')(dbExec);
 const Items         = require('./controller/Items')(dbExec);
 const Cart          = require('./controller/Cart')(dbExec);
@@ -111,45 +112,66 @@ var transporter = nodemailer.createTransport({
     }
 });
 
-var j = schedule.scheduleJob('5 * * * * *', function(){
+let sentEmails = [];
+let j = schedule.scheduleJob('30 * * * * *', function(){
 
-    var url = "mongodb://localhost:27017/";
+    const url = "mongodb://localhost:27017/";
 
-    MongoClient.connect(url, function(err, db) {
+    MongoClient.connect(url, async function(err, db) {
         if (err) throw err;
-        var dbo = db.db("inventory");
-        var datetime = new Date();
-        var year = datetime.getFullYear();
-        var month = datetime.getMonth() + 1;
+        let dbo = db.db("inventory");
+        let datetime = new Date();
+        let year = datetime.getFullYear();
+        let month = datetime.getMonth() + 1;
         month = (month < 10 ? "0" : "") + month;
-        var day  = datetime.getDate();
+        let day  = datetime.getDate();
         day = (day < 10 ? "0" : "") + day;
-        var currentDate = year + "-" + month + "-" + day;
-        var timeTest = "03:00";
-        // console.log(timeTest.split(':')[0]);
+        let currentDate = year + "-" + month + "-" + day;
+        let hour = datetime.getHours();
+        hour = (hour < 10 ? "0" : "") + hour;
+        let minutes = datetime.getMinutes();
+        if(minutes !== 59){
+            minutes++
+        }else{
+            hour++;
+            minutes = 0;
+        }
+        minutes = (minutes < 10 ? "0" : "") + minutes;
+        let currentTimePlusOne = hour + ":" + minutes;
+        console.log("current time plus one is: " + currentTimePlusOne);
 
-        dbo.collection("items").find({date: currentDate}).toArray(function(err, result) {
+        console.log(sentEmails.length);
+        if(sentEmails.length > 0){
+            for(let i = 0; i < sentEmails.length; i++){
+                let email = await dbo.collection("items").updateOne({_id: ObjectId(sentEmails[i])}, {$set: {sent: 1}});
+                if(email.result.n > 0){
+                    console.log('success');
+                }
+
+            }
+        }
+
+        dbo.collection("items").find({date: currentDate, time: currentTimePlusOne}).toArray(function(err, result) {
             if (err) throw err;
             // console.log(result);
-            for(var i = 0; i < result.length; i++){
-                var time = result[i].time;
-                // console.log(time.splice(':'));
+            for(let i = 0; i < result.length; i++){
+                let time = result[i].time;
+                console.log(time);
                 // console.log('first');
+                const id = result[i]._id;
                 const mailOptions = {
                     from: "mckay.court@gmail.com",
                     to: result[i].emailTo,
                     subject: result[i].subject,
                     text: result[i].message
                 };
-                // console.log(mailOptions);
-                var test = schedule.scheduleJob({hour: time.split(':')[0], minute: time.split(':')[1]}, function(){
-                    console.log('it worked');
-                    console.log(mailOptions);
+                let test = schedule.scheduleJob({hour: time.split(':')[0], minute: time.split(':')[1]}, function(){
                     transporter.sendMail(mailOptions, function(error, info){
                         if (error) {
                             console.log(error);
                         } else {
                             console.log('Email sent: ' + info.response);
+                            sentEmails.push(id);
                         }
                     });
                 });
@@ -168,7 +190,6 @@ app.use(express.static(config.build.dest));
 app.use((req, res, next) => {
     if (req.method === 'GET') {
         const indexPath = path.resolve(config.build.dest, 'index.html');
-        console.log(req.originalUrl);
         res.sendFile(indexPath);
 
     } else {

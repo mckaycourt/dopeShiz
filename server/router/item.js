@@ -9,10 +9,10 @@ module.exports = router;
 
 router.post('/newItem', async (req, res) => {
     const body = req.body;
-    if (!body || !body.name || !body.emailFrom || !body.emailTo || !body.subject || !body.message /*|| !req.user*/) {
+    if (!body || !body.name || !body.emailTo || !body.subject || !body.message /*|| !req.user*/) {
         res.status(400).send("Not enough info");
     } else {
-        const created = await Items.create(/*req.user.username*/"mmcourt", body.name, body.date, body.time, body.emailFrom, body.emailTo, body.subject, body.message);
+        const created = await Items.create(req.user.username, body.name, body.date, body.time, body.emailTo, body.subject, body.message, 0);
         if (created) {
             res.status(200).send('Item created');
         } else {
@@ -33,6 +33,24 @@ router.get('/items', async (req, res) => {
         }
     }
 });
+
+router.post('/removeItem', async (req, res) => {
+    const body = req.body;
+    if (!body || !body._id) {
+        res.status(400).send('Invalid body');
+        console.log("fail");
+    } else {
+
+        const created = await Items.remove(body._id);
+        if (created) {
+            res.status(200).send('Item deleted');
+        } else {
+            res.status(500).send("I don't know what happened but it didn't delete the item");
+        }
+    }
+
+});
+
 // router.post('/', async (req, res) => {
 //     const body = req.body;
 //     if (!body || !body.username || !body.password) {
